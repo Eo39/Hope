@@ -1,4 +1,5 @@
-pip instal tensorflow 
+pip install
+tensorflow 
 streamlit
 pandas
 numpy
