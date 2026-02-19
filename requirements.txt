@@ -1,2 +1,7 @@
-pip install streamlit pandas numpy matplotlib keras pillow
+streamlit 
+pandas 
+numpy 
+matplotlib 
+keras 
+pillow
 tensorflow==2.8.0 
