@@ -1,0 +1,3 @@
+0 T-shirt Rot
+1 T-shirt Blau
+2 T-shirt Schwarz
