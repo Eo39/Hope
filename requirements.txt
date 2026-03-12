@@ -5,4 +5,4 @@ matplotlib
 keras 
 pillow
 tensorflow
-cv2
+opencv-python-headless
