@@ -1,8 +1,4 @@
-streamlit 
-pandas 
-numpy 
-matplotlib 
-keras 
+streamlit
+tensorflow==2.15.0
+numpy<2.0.0
 pillow
-tensorflow
-opencv-python-headless
