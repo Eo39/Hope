@@ -4,4 +4,4 @@ numpy
 matplotlib 
 keras 
 pillow
-tensorflow==2.8.0 
+tensorflow
