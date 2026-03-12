@@ -3,26 +3,20 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 
-# 1. Modell laden
-# Da du eine .h5 Datei hast, nutzen wir den normalen load_model Befehl
+# Modell und Labels laden
 model_path = 'keras_model.h5'
 model = tf.keras.models.load_model(model_path)
 
-# 2. Labels laden aus deiner labels.txt
 def load_labels(path):
     with open(path, 'r') as f:
-        # Erstellt eine Liste und entfernt Leerzeichen/Zeilenumbrüche
         return [line.strip() for line in f.readlines()]
 
 class_names = load_labels('labels.txt')
 
 def preprocess_image(image):
-    # Die meisten Teachable Machine Modelle nutzen 224x224
     target_size = (224, 224) 
     image = image.resize(target_size)
     image_array = np.array(image).astype('float32')
-    # Normalisierung (Wichtig: Viele h5 Modelle erwarten Werte zwischen -1 und 1 oder 0 und 1)
-    # Wir nutzen hier den Standard 0-1
     image_array = image_array / 255.0 
     image_array = np.expand_dims(image_array, axis=0)
     return image_array
@@ -30,7 +24,6 @@ def preprocess_image(image):
 def predict_image(image):
     processed_img = preprocess_image(image)
     predictions = model.predict(processed_img)
-    
     top_idx = np.argmax(predictions[0])
     confidence = predictions[0][top_idx] * 100
     class_name = class_names[top_idx]
@@ -51,5 +44,6 @@ if uploaded_file is not None:
             st.warning(f"Das Ergebnis ist unsicher ({confidence:.2f}%). Vermutung: {class_name}")
         else:
             st.success(f"Die erkannte Farbe ist: **{class_name}** ({confidence:.2f}%)")
+            st.button("Ergebnis vorlesen", on_click=lambda: st.write(f"Spreche: {class_name}"))
     except Exception as e:
         st.error(f"Fehler bei der Vorhersage: {e}")
