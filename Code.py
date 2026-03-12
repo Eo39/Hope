@@ -6,7 +6,7 @@ from PIL import Image
 
 # Modell laden (Pfad anpassen, falls anders gespeichert)
 model_path = 'model/your_model_directory'  # Ersetze durch deinen Pfad
-model = tf.keras.models.load_model(model_path)
+model = tf.keras.layers.TFSMLayer(model_path, call_endpoint='serving_default')
 
 # Klassenbezeichnungen, die dein Modell erkennt
 class_names = ['rot', 'blau', 'schwarz']
