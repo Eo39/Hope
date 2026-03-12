@@ -3,9 +3,9 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 
-# Modell und Labels laden
+# Modell mit expliziter Deaktivierung der neuen Keras 3 Speicherung laden
 model_path = 'keras_model.h5'
-model = tf.keras.models.load_model(model_path)
+model = tf.keras.models.load_model(model_path, compile=False)
 
 def load_labels(path):
     with open(path, 'r') as f:
@@ -17,7 +17,8 @@ def preprocess_image(image):
     target_size = (224, 224) 
     image = image.resize(target_size)
     image_array = np.array(image).astype('float32')
-    image_array = image_array / 255.0 
+    # WICHTIG: Teachable Machine Modelle benötigen oft diese Normalisierung:
+    image_array = (image_array / 127.5) - 1
     image_array = np.expand_dims(image_array, axis=0)
     return image_array
 
@@ -26,7 +27,10 @@ def predict_image(image):
     predictions = model.predict(processed_img)
     top_idx = np.argmax(predictions[0])
     confidence = predictions[0][top_idx] * 100
+    # Entferne evtl. vorhandene Index-Zahlen aus dem Label (z.B. "0 rot" -> "rot")
     class_name = class_names[top_idx]
+    if " " in class_name:
+        class_name = class_name.split(" ", 1)[1]
     return class_name, confidence
 
 st.title("T-Shirt Farbenerkennung für Blinde")
@@ -44,6 +48,5 @@ if uploaded_file is not None:
             st.warning(f"Das Ergebnis ist unsicher ({confidence:.2f}%). Vermutung: {class_name}")
         else:
             st.success(f"Die erkannte Farbe ist: **{class_name}** ({confidence:.2f}%)")
-            st.button("Ergebnis vorlesen", on_click=lambda: st.write(f"Spreche: {class_name}"))
     except Exception as e:
         st.error(f"Fehler bei der Vorhersage: {e}")
