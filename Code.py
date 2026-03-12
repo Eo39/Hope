@@ -2,11 +2,15 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+from supabase import create_client, Client
 
-# Modell und Labels laden
+# Supabase Verbindung (Ersetze die Werte durch deine echten Daten!)
+SUPABASE_URL = "DEINE_SUPABASE_URL"
+SUPABASE_KEY = "DEIN_SUPABASE_ANON_KEY"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 @st.cache_resource
 def load_my_model():
-    # Wir laden es ohne compile, um Fehler mit alten Optimierern zu vermeiden
     return tf.keras.models.load_model('keras_model.h5', compile=False)
 
 model = load_my_model()
@@ -25,21 +29,27 @@ if uploaded_file is not None:
     image = Image.open(uploaded_file).convert('RGB')
     st.image(image, use_container_width=True)
 
-    # Preprocessing (Exakt so wie Teachable Machine es vorgibt)
+    # Preprocessing
     size = (224, 224)
-    image = image.resize(size)
-    image_array = np.asarray(image).astype('float32')
+    image_resized = image.resize(size)
+    image_array = np.asarray(image_resized).astype('float32')
     normalized_image_array = (image_array / 127.5) - 1
-    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
-    data[0] = normalized_image_array
+    data = np.expand_dims(normalized_image_array, axis=0)
 
     # Vorhersage
     prediction = model.predict(data)
     index = np.argmax(prediction)
     class_name = class_names[index]
-    confidence_score = prediction[0][index]
+    confidence_score = float(prediction[0][index])
 
-    # Anzeige (Säubere "0 rot" zu "rot")
     display_name = class_name.split(" ", 1)[1] if " " in class_name else class_name
     
-    st.success(f"Farbe: {display_name} (Sicherheit: {confidence_score:.2%})")
+    st.success(f"Farbe: {display_name} ({confidence_score:.2%})")
+
+    # DATEN IN SUPABASE SPEICHERN
+    try:
+        data_to_save = {"farbe": display_name, "konfidenz": confidence_score}
+        supabase.table("farberkennungen").insert(data_to_save).execute()
+        st.info("Ergebnis wurde in der Datenbank gespeichert!")
+    except Exception as e:
+        st.error(f"Datenbankfehler: {e}")
