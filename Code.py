@@ -3,9 +3,13 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 
-# Modell mit expliziter Deaktivierung der neuen Keras 3 Speicherung laden
-model_path = 'keras_model.h5'
-model = tf.keras.models.load_model(model_path, compile=False)
+# Modell und Labels laden
+@st.cache_resource
+def load_my_model():
+    # Wir laden es ohne compile, um Fehler mit alten Optimierern zu vermeiden
+    return tf.keras.models.load_model('keras_model.h5', compile=False)
+
+model = load_my_model()
 
 def load_labels(path):
     with open(path, 'r') as f:
@@ -13,40 +17,29 @@ def load_labels(path):
 
 class_names = load_labels('labels.txt')
 
-def preprocess_image(image):
-    target_size = (224, 224) 
-    image = image.resize(target_size)
-    image_array = np.array(image).astype('float32')
-    # WICHTIG: Teachable Machine Modelle benötigen oft diese Normalisierung:
-    image_array = (image_array / 127.5) - 1
-    image_array = np.expand_dims(image_array, axis=0)
-    return image_array
+st.title("T-Shirt Farbenerkennung")
 
-def predict_image(image):
-    processed_img = preprocess_image(image)
-    predictions = model.predict(processed_img)
-    top_idx = np.argmax(predictions[0])
-    confidence = predictions[0][top_idx] * 100
-    # Entferne evtl. vorhandene Index-Zahlen aus dem Label (z.B. "0 rot" -> "rot")
-    class_name = class_names[top_idx]
-    if " " in class_name:
-        class_name = class_name.split(" ", 1)[1]
-    return class_name, confidence
-
-st.title("T-Shirt Farbenerkennung für Blinde")
-
-uploaded_file = st.file_uploader("Lade ein Bild des T-Shirts hoch", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Bild hochladen", type=["jpg", "png"])
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file).convert('RGB')
-    st.image(image, caption='Hochgeladenes Bild', use_container_width=True)
+    st.image(image, use_container_width=True)
 
-    try:
-        class_name, confidence = predict_image(image)
+    # Preprocessing (Exakt so wie Teachable Machine es vorgibt)
+    size = (224, 224)
+    image = image.resize(size)
+    image_array = np.asarray(image).astype('float32')
+    normalized_image_array = (image_array / 127.5) - 1
+    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+    data[0] = normalized_image_array
 
-        if confidence < 50:
-            st.warning(f"Das Ergebnis ist unsicher ({confidence:.2f}%). Vermutung: {class_name}")
-        else:
-            st.success(f"Die erkannte Farbe ist: **{class_name}** ({confidence:.2f}%)")
-    except Exception as e:
-        st.error(f"Fehler bei der Vorhersage: {e}")
+    # Vorhersage
+    prediction = model.predict(data)
+    index = np.argmax(prediction)
+    class_name = class_names[index]
+    confidence_score = prediction[0][index]
+
+    # Anzeige (Säubere "0 rot" zu "rot")
+    display_name = class_name.split(" ", 1)[1] if " " in class_name else class_name
+    
+    st.success(f"Farbe: {display_name} (Sicherheit: {confidence_score:.2%})")
